@@ -1,0 +1,141 @@
+grammar Configgy
+  rule bad
+    number / string
+  end
+
+  rule whitespace
+    (" " / "\t" / "\n" / "#" [^\n]* "\n")*
+  end
+
+  rule number
+    "-"? [0-9]+ decimal:("." [0-9]+)? {
+      def to_value
+        decimal.text_value.empty? ? text_value.to_i : text_value.to_f
+      end
+    }
+  end
+  
+  rule string
+    "\"" raw:string_innards* "\"" {
+      def to_value
+        raw.elements.inject("") { |total, segment| total + segment.unquoted }
+      end
+    }
+  end
+
+  rule string_innards
+    [^\\\"]+ {
+      def unquoted
+        text_value
+      end
+    } / "\\" quoted_entity {
+      def unquoted
+        quoted_entity.unquoted
+      end
+    }
+  end
+
+  rule quoted_entity
+    [^ux] {
+      def unquoted
+        case text_value
+          when "r" then "\r"
+          when "n" then "\n"
+          when "t" then "\t"
+          when "$" then "\\$"
+          else text_value
+        end
+      end
+    } / "u" digits:(hex_digit hex_digit hex_digit hex_digit) {
+      def unquoted
+        # FIXME this wont really work until ruby gets unicode support.
+        digits.text_value.to_i(16).chr
+      end
+    } / "x" digits:(hex_digit hex_digit) {
+      def unquoted
+        digits.text_value.to_i(16).chr
+      end
+    }
+  end
+
+  rule hex_digit
+    [0-9a-fA-F]
+  end
+  
+  #number
+end
+
+
+# 
+# val sections = new Stack[String]
+# var prefix = ""
+# 
+# 
+# // tokens
+# val identToken: Parser[String] = """([a-zA-Z_][-\w]*)(\.[a-zA-Z_][-\w]*)*""".r
+# val assignToken: Parser[String] = """=|\?=""".r
+# val tagNameToken: Parser[String] = """[a-zA-Z][-\w]*""".r
+# 
+# 
+# def root = rep(includeFile | assignment | toggle | sectionOpen | sectionClose |
+#                sectionOpenBrace | sectionCloseBrace)
+# 
+# def includeFile = "include" ~> string ^^ {
+#   case filename: String =>
+#     new ConfigParser(attr.makeAttributes(sections.mkString(".")), importer) parse importer.importFile(filename)
+# }
+# 
+# def assignment = identToken ~ assignToken ~ value ^^ {
+#   case k ~ a ~ v => if (a match {
+#     case "=" => true
+#     case "?=" => ! attr.contains(prefix + k)
+#   }) v match {
+#     case x: Int => attr(prefix + k) = x
+#     case x: String => attr(prefix + k) = x
+#     case x: Array[String] => attr(prefix + k) = x
+#     case x: Boolean => attr(prefix + k) = x
+#   }
+# }
+# 
+# def toggle = identToken ~ trueFalse ^^ { case k ~ v => attr(prefix + k) = v }
+# 
+# def sectionOpen = "<" ~> tagNameToken ~ rep(tagAttribute) <~ ">" ^^ {
+#   case name ~ attrList => openBlock(name, attrList)
+# }
+# def tagAttribute = opt(whiteSpace) ~> (tagNameToken <~ "=") ~ string ^^ { case k ~ v => (k, v) }
+# def sectionClose = "</" ~> tagNameToken <~ ">" ^^ { name => closeBlock(Some(name)) }
+# 
+# def sectionOpenBrace = tagNameToken ~ opt("(" ~> rep(tagAttribute) <~ ")") <~ "{" ^^ {
+#   case name ~ attrListOption => openBlock(name, attrListOption.getOrElse(Nil))
+# }
+# def sectionCloseBrace = "}" ^^ { x => closeBlock(None) }
+# 
+# private def openBlock(name: String, attrList: List[(String, String)]) = {
+#   val parent = if (sections.size > 0) attr.makeAttributes(sections.mkString(".")) else attr
+#   sections += name
+#   prefix = sections.mkString("", ".", ".")
+#   val newBlock = attr.makeAttributes(sections.mkString("."))
+#   for ((k, v) <- attrList) k match {
+#     case "inherit" => newBlock.inheritFrom = Some(if (parent.getConfigMap(v).isDefined) parent.makeAttributes(v) else attr.makeAttributes(v))
+#     case _ => throw new ParseException("Unknown block modifier")
+#   }
+# }
+# 
+# private def closeBlock(name: Option[String]) = {
+#   if (sections.isEmpty) {
+#     failure("dangling close tag")
+#   } else {
+#     val last = sections.pop
+#     if (name.isDefined && last != name.get) {
+#       failure("got closing tag for " + name.get + ", expected " + last)
+#     } else {
+#       prefix = if (sections.isEmpty) "" else sections.mkString("", ".", ".")
+#     }
+#   }
+# }
+# 
+# 
+# def value: Parser[Any] = number | string | stringList | trueFalse
+# def stringList = "[" ~> repsep(string | numberToken, opt(",")) <~ (opt(",") ~ "]") ^^ { list => list.toArray }
+# def trueFalse: Parser[Boolean] = ("(true|on)".r ^^ { x => true }) | ("(false|off)".r ^^ { x => false })
+# 

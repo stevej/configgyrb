@@ -1,0 +1,5 @@
+CHANGELOG
+lib/configgy.rb
+Rakefile
+test/unit/configgy_test.rb
+Manifest
