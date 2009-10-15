@@ -63,8 +63,40 @@ module Configgy
       lookup_cell(key.to_s)
     end
 
+    def delete(key)
+      key = key.to_s
+      if @monitored
+        @root.deep_delete(@name, key)
+      else
+        recurse(key) { |config_map, key| config_map.cells.delete(key) }
+      end
+    end
+
     def ==(other)
       other.instance_of?(self.class) and @cells == other.cells
+    end
+
+    def to_map
+      rv = @cells.dup
+      rv.each do |k, v|
+        if v.instance_of?(ConfigMap)
+          rv[k] = v.to_map
+        end
+      end
+    end
+
+    def copy_to(map)
+      @inherit_from.copy_to(map) if @inherit_from
+      @cells.each do |k, v|
+        # assume everything that doesn't respond to dup is immutable.
+        map[k] = begin v.dup rescue v end
+      end
+    end
+
+    def dup
+      map = ConfigMap.new(@root, @name)
+      copy_to(map)
+      map
     end
 
     def inspect

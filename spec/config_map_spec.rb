@@ -70,55 +70,47 @@ describe "ConfigMap" do
     map2["diet.food.dry"] = "Meow Mix"
     @map.should == map2
   end
+
+  it "removes values" do
+    @map[:name] = "Communist"
+    @map[:age] = 8
+    @map["diet.food"] = "Meow Mix"
+    @map["diet.liquid"] = "water"
+    @map.inspect.should == '{root: age=8 diet={root.diet: food="Meow Mix" liquid="water"} name="Communist"}'
+    @map.delete("diet.food").should == "Meow Mix"
+    @map.delete("diet.food").should == nil
+    @map.inspect.should == '{root: age=8 diet={root.diet: liquid="water"} name="Communist"}'
+    @map.delete("age").should == 8
+    @map.delete("age").should == nil
+    @map.inspect.should == '{root: diet={root.diet: liquid="water"} name="Communist"}'
+  end
+
+  it "converts to a map" do
+    @map[:name] = "Communist"
+    @map[:age] = 8
+    @map["diet.food"] = "Meow Mix"
+    @map["diet.liquid"] = "water"
+    @map.to_map.should == { "name" => "Communist", "age" => 8, "diet" => { "food" => "Meow Mix", "liquid" => "water" } }
+  end
+  
+  it "dupes" do
+    @map[:name] = "Communist"
+    @map[:age] = 8
+    @map["diet.food"] = "Meow Mix"
+    @map["diet.liquid"] = "water"
+    t = @map.dup
+    @map.inspect.should == '{root: age=8 diet={root.diet: food="Meow Mix" liquid="water"} name="Communist"}'
+    t.inspect.should == '{root: age=8 diet={root.diet: food="Meow Mix" liquid="water"} name="Communist"}'
+
+    @map["diet.food"] = "fish"
+    @map[:age] = 9
+    @map.inspect.should == '{root: age=9 diet={root.diet: food="fish" liquid="water"} name="Communist"}'
+    t.inspect.should == '{root: age=8 diet={root.diet: food="Meow Mix" liquid="water"} name="Communist"}'
+  end
 end
 
 
  #  "Attributes" should {
- #     "remove values" in {
- #       val s = new Attributes(null, "")
- #       s("name") = "Communist"
- #       s("age") = 8
- #       s("diet.food") = "Meow Mix"
- #       s("diet.liquid") = "water"
- #       s.toString mustEqual "{: age=\"8\" diet={diet: food=\"Meow Mix\" liquid=\"water\" } name=\"Communist\" }"
- #       s.remove("diet.food") mustBe true
- #       s.remove("diet.food") mustBe false
- #       s.toString mustEqual "{: age=\"8\" diet={diet: liquid=\"water\" } name=\"Communist\" }"
- #     }
- #
- #     "convert to a map" in {
- #       val s = new Attributes(null, "")
- #       s("name") = "Communist"
- #       s("age") = 8
- #       s("disposition") = "fighter"
- #       s("diet.food") = "Meow Mix"
- #       s("diet.liquid") = "water"
- #       val map = s.asMap
- #
- #       // turn it into a sorted list, so we get a deterministic answer
- #       val keyList = map.keys.toList.toArray
- #       Sorting.quickSort(keyList)
- #       (for (val k <- keyList) yield (k + "=" + map(k))).mkString("{ ", ", ", " }") mustEqual
- #         "{ age=8, diet.food=Meow Mix, diet.liquid=water, disposition=fighter, name=Communist }"
- #     }
- #
- #     "copy" in {
- #       val s = new Attributes(null, "")
- #       s("name") = "Communist"
- #       s("age") = 8
- #       s("diet.food") = "Meow Mix"
- #       s("diet.liquid") = "water"
- #       val t = s.copy()
- #
- #       s.toString mustEqual "{: age=\"8\" diet={diet: food=\"Meow Mix\" liquid=\"water\" } name=\"Communist\" }"
- #       t.toString mustEqual "{: age=\"8\" diet={diet: food=\"Meow Mix\" liquid=\"water\" } name=\"Communist\" }"
- #
- #       s("diet.food") = "fish"
- #
- #       s.toString mustEqual "{: age=\"8\" diet={diet: food=\"fish\" liquid=\"water\" } name=\"Communist\" }"
- #       t.toString mustEqual "{: age=\"8\" diet={diet: food=\"Meow Mix\" liquid=\"water\" } name=\"Communist\" }"
- #     }
- #
  #     "copy with inheritance" in {
  #       val s = new Attributes(null, "s")
  #       s("name") = "Communist"
@@ -131,14 +123,6 @@ end
  #       val x = t.copy()
  #       t.toString mustEqual "{t (inherit=s): age=\"8\" disposition=\"hungry\" }"
  #       x.toString mustEqual "{t: age=\"8\" disposition=\"hungry\" name=\"Communist\" }"
- #     }
- #
- #     "find lists" in {
- #       val s = new Attributes(null, "")
- #       s("port") = 6667
- #       s("hosts") = List("localhost", "skunk.example.com")
- #       s.getList("hosts").toList mustEqual List("localhost", "skunk.example.com")
- #       s.getList("non-hosts").toList mustEqual Nil
  #     }
  #
  #     "add a nested ConfigMap" in {

@@ -22,9 +22,10 @@ task :test do
   system("ruby -Ilib ./test/unit/*.rb")
 end
 
-$LOAD_PATH << "/Users/robey/twitter/configgyrb/lib"
+$LOAD_PATH << "lib"
 Spec::Rake::SpecTask.new(:spec) do |t|
-#  t.spec_opts = ['--options', "\"#{RAILS_ROOT}/spec/spec.opts\""]
+  # why is color misspelled?
+  t.spec_opts = [ '--colour', '--format progress', '--loadby mtime', '--reverse' ]
   t.spec_files = FileList['spec/*_spec.rb']
 end
 
