@@ -48,8 +48,7 @@ grammar Configgy
       end
     } / "u" digits:(hex_digit hex_digit hex_digit hex_digit) {
       def unquoted
-        # FIXME this wont really work until ruby gets unicode support.
-        digits.text_value.to_i(16).chr
+        [ digits.text_value.to_i(16) ].pack("U")
       end
     } / "x" digits:(hex_digit hex_digit) {
       def unquoted
