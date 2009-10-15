@@ -1,7 +1,7 @@
 module Configgy
   class ConfigMap
     attr_reader :name, :cells
-    attr_accessor :monitored
+    attr_accessor :monitored, :inherit_from
 
     def initialize(root, name)
       @root = root
@@ -97,6 +97,21 @@ module Configgy
       map = ConfigMap.new(@root, @name)
       copy_to(map)
       map
+    end
+
+    def to_config_string
+      to_config_list.join("\n") + "\n"
+    end
+
+    def to_config_list
+      @cells.keys.sort.map do |k|
+        v = @cells[k]
+        if v.instance_of?(ConfigMap)
+          [ "#{k}" + (v.inherit_from ? " (inherit=\"#{v.inherit_from.name}\")" : "") + " {", v.to_config_list.map { |s| "  " + s }, "}" ].flatten
+        else
+          "#{k} = #{v.inspect}"
+        end
+      end.flatten
     end
 
     def inspect

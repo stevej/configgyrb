@@ -92,7 +92,7 @@ describe "ConfigMap" do
     @map["diet.liquid"] = "water"
     @map.to_map.should == { "name" => "Communist", "age" => 8, "diet" => { "food" => "Meow Mix", "liquid" => "water" } }
   end
-  
+
   it "dupes" do
     @map[:name] = "Communist"
     @map[:age] = 8
@@ -107,63 +107,45 @@ describe "ConfigMap" do
     @map.inspect.should == '{root: age=9 diet={root.diet: food="fish" liquid="water"} name="Communist"}'
     t.inspect.should == '{root: age=8 diet={root.diet: food="Meow Mix" liquid="water"} name="Communist"}'
   end
+
+  it "dupes with inheritance" do
+    @map[:name] = "Communist"
+    @map[:age] = 8
+    ancestor = Configgy::ConfigMap.new(nil, "ancestor")
+    ancestor[:age] = 12
+    ancestor[:disposition] = "hungry"
+    @map.inherit_from = ancestor
+
+    t = @map.dup
+    @map.inspect.should == '{root (inherit=ancestor): age=8 name="Communist"}'
+    t.inspect.should == '{root: age=8 disposition="hungry" name="Communist"}'
+  end
+
+  it "creates a config string" do
+    @map[:name] = "Sparky"
+    @map[:age] = 10
+    @map[:diet] = "poor"
+    @map["muffy.name"] = "Muffy"
+    @map["muffy.age"] = 11
+    @map["fido.name"] = "Fido"
+    @map["fido.age"] = 5
+    @map["fido.roger.name"] = "Roger"
+    @map["fido.roger"].inherit_from = @map[:muffy]
+    @map.to_config_string.should == <<-END
+age = 10
+diet = "poor"
+fido {
+  age = 5
+  name = "Fido"
+  roger (inherit="root.muffy") {
+    name = "Roger"
+  }
+}
+muffy {
+  age = 11
+  name = "Muffy"
+}
+name = "Sparky"
+END
+  end
 end
-
-
- #  "Attributes" should {
- #     "copy with inheritance" in {
- #       val s = new Attributes(null, "s")
- #       s("name") = "Communist"
- #       s("age") = 1
- #       val t = new Attributes(null, "t")
- #       t("age") = 8
- #       t("disposition") = "hungry"
- #       t.inheritFrom = Some(s)
- #
- #       val x = t.copy()
- #       t.toString mustEqual "{t (inherit=s): age=\"8\" disposition=\"hungry\" }"
- #       x.toString mustEqual "{t: age=\"8\" disposition=\"hungry\" name=\"Communist\" }"
- #     }
- #
- #     "add a nested ConfigMap" in {
- #       val s = new Attributes(null, "")
- #       val sub = new Attributes(null, "")
- #       s("name") = "Sparky"
- #       sub("name") = "Muffy"
- #       s.setConfigMap("dog", sub)
- #       s.toString mustEqual "{: dog={: name=\"Muffy\" } name=\"Sparky\" }"
- #       sub("age") = 10
- #       s.toString mustEqual "{: dog={: name=\"Muffy\" } name=\"Sparky\" }"
- #     }
- #
- #     "toConfig" in {
- #       val s = new Attributes(null, "")
- #       s("name") = "Sparky"
- #       s("age") = "10"
- #       s("diet") = "poor"
- #       s("muffy.name") = "Muffy"
- #       s("muffy.age") = "11"
- #       s("fido.name") = "Fido"
- #       s("fido.age") = "5"
- #       s("fido.roger.name") = "Roger"
- #       s.configMap("fido.roger").inheritFrom = Some(s.configMap("muffy"))
- #
- #       val expected = """age = "10"
- # diet = "poor"
- # fido {
- #   age = "5"
- #   name = "Fido"
- #   roger (inherit="muffy") {
- #     name = "Roger"
- #   }
- # }
- # muffy {
- #   age = "11"
- #   name = "Muffy"
- # }
- # name = "Sparky"
- # """
- #       s.toConfigString mustEqual expected
- #     }
- #   }
- # }
