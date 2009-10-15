@@ -1,6 +1,29 @@
 grammar Configgy
-  rule bad
-    number / string
+  rule assignment
+    identifier op:("=" / "?=") value {
+      def apply(attr)
+        key = attr.prefix + identifier.text_value
+        if (op.text_value == "=") or !attr.has_key?(key)
+          attr[key] = value.to_value
+        end
+      end
+    }
+  end
+
+  # def assignment = identToken ~ assignToken ~ value ^^ {
+  #   case k ~ a ~ v => if (a match {
+  #     case "=" => true
+  #     case "?=" => ! attr.contains(prefix + k)
+  #   }) v match {
+  #     case x: Int => attr(prefix + k) = x
+  #     case x: String => attr(prefix + k) = x
+  #     case x: Array[String] => attr(prefix + k) = x
+  #     case x: Boolean => attr(prefix + k) = x
+  #   }
+  # }
+
+  rule value
+    number / string / true_false / string_list
   end
 
   rule whitespace
@@ -61,8 +84,43 @@ grammar Configgy
     [0-9a-fA-F]
   end
   
-  #number
+  rule true_false
+    "true" {
+      def to_value
+        true
+      end
+    } / "on" {
+      def to_value
+        true
+      end
+    } / "false" {
+      def to_value
+        false
+      end
+    } / "off" {
+      def to_value
+        false
+      end
+    }
+  end
+  
+  rule string_list
+    "[" list:(item:(string / number) ","?)* "]" {
+      def to_value
+        list.elements.map { |e| e.item.to_value }
+      end
+    }
+  end
+  
+  rule identifier
+    identifier_token ("\." identifier_token)*
+  end
+
+  rule identifier_token
+    ([a-zA-Z_] [-a-zA-Z_]*)
+  end
 end
+
 
 
 # 
@@ -84,17 +142,6 @@ end
 #     new ConfigParser(attr.makeAttributes(sections.mkString(".")), importer) parse importer.importFile(filename)
 # }
 # 
-# def assignment = identToken ~ assignToken ~ value ^^ {
-#   case k ~ a ~ v => if (a match {
-#     case "=" => true
-#     case "?=" => ! attr.contains(prefix + k)
-#   }) v match {
-#     case x: Int => attr(prefix + k) = x
-#     case x: String => attr(prefix + k) = x
-#     case x: Array[String] => attr(prefix + k) = x
-#     case x: Boolean => attr(prefix + k) = x
-#   }
-# }
 # 
 # def toggle = identToken ~ trueFalse ^^ { case k ~ v => attr(prefix + k) = v }
 # 
@@ -134,7 +181,4 @@ end
 # }
 # 
 # 
-# def value: Parser[Any] = number | string | stringList | trueFalse
-# def stringList = "[" ~> repsep(string | numberToken, opt(",")) <~ (opt(",") ~ "]") ^^ { list => list.toArray }
-# def trueFalse: Parser[Boolean] = ("(true|on)".r ^^ { x => true }) | ("(false|off)".r ^^ { x => false })
 # 

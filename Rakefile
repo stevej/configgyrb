@@ -3,6 +3,8 @@ require 'rubygems'
 gem 'treetop'
 require 'echoe'
 
+require 'spec/rake/spectask'
+
 task :echoe do
   Echoe.new("configgy") do |p|
     p.author = "Robey Pointer"
@@ -18,4 +20,14 @@ end
 
 task :test do
   system("ruby -Ilib ./test/unit/*.rb")
+end
+
+$LOAD_PATH << "/Users/robey/twitter/configgyrb/lib"
+Spec::Rake::SpecTask.new(:spec) do |t|
+#  t.spec_opts = ['--options', "\"#{RAILS_ROOT}/spec/spec.opts\""]
+  t.spec_files = FileList['spec/*_spec.rb']
+end
+
+task :specx do
+  system("spec ./test/unit/*_spec.rb")
 end
