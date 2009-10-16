@@ -1,6 +1,22 @@
 grammar Configgy
+  rule root
+    root_bits:root_bit* whitespace* {
+      def apply(attr)
+        root_bits.elements.each { |node| node.apply(attr) }
+      end
+    }
+  end
+
+  rule root_bit
+    whitespace* assignment {
+      def apply(attr)
+        assignment.apply(attr)
+      end
+    }
+  end
+
   rule assignment
-    identifier op:("=" / "?=") value {
+    identifier whitespace* op:("=" / "?=") whitespace* value {
       def apply(attr)
         key = identifier.text_value
         if (op.text_value == "=") or !attr.has_key?(key)
@@ -24,7 +40,7 @@ grammar Configgy
   end
 
   rule whitespace
-    (" " / "\t" / "\n" / "#" [^\n]* "\n")*
+    (" " / "\t" / "\n" / "#" [^\n]* "\n")
   end
 
   rule number
@@ -125,6 +141,9 @@ end
 # var prefix = ""
 # val tagNameToken: Parser[String] = """[a-zA-Z][-\w]*""".r
 # 
+
+
+
 # def root = rep(includeFile | assignment | toggle | sectionOpen | sectionClose |
 #                sectionOpenBrace | sectionCloseBrace)
 # 
