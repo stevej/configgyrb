@@ -1,7 +1,7 @@
 $LOAD_PATH << "lib"
 
 require 'rubygems'
-require 'configgy/config_map'
+require 'configgy'
 
 describe "ConfigMap" do
   before do

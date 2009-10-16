@@ -1,5 +1,7 @@
 require "rubygems"
+require "treetop"
 require "treetop/configgy"
 require "configgy/config_map"
+require "configgy/config_parser"
 
-class ConfigException < RuntimeException; end
+class ConfigException < RuntimeError; end

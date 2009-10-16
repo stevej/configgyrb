@@ -1,19 +1,16 @@
 $LOAD_PATH << "lib"
 
 require 'rubygems'
-require 'treetop'
-require 'treetop/configgy'
+require 'configgy'
 
 describe "ConfigParser" do
   before do
-    @parser = ConfiggyParser.new
+    @parser = Configgy::ConfigParser.new
   end
 
   def parse(str)
     @parser.root = :root
-    map = Configgy::ConfigMap.new(nil, "")
-    @parser.parse(str).apply(map)
-    map
+    @parser.read(str)
   end
 
   def unquoted(str)
@@ -68,34 +65,41 @@ describe "ConfigParser" do
     b[:cats].should == [ 'Commie', 'Buttons', 'Sockington' ]
   end
 
-  #     "normal" in {
-  #       val data =
-  #         "<home>\n" +
-  #         "    states = [\"California\", \"Tennessee\", \"Idaho\"]\n" +
-  #         "    regions = [\"pacific\", \"southeast\", \"northwest\"]\n" +
-  #         "</home>\n"
-  #       val a = parse(data)
-  #       a.toString mustEqual "{: home={home: regions=[pacific,southeast,northwest] states=[California,Tennessee,Idaho] } }"
-  #       a.getList("home.states").toList.mkString(",") mustEqual "California,Tennessee,Idaho"
-  #     }
+  it "handles nested blocks" do
+    parse('''alpha="hello"
+             beta {
+               gamma=23
+             }
+          ''').inspect.should == '{: alpha="hello" beta={beta: gamma=23}}'
+    parse('''alpha="hello"
+             beta {
+               gamma=23
+               toaster on
+             }
+          ''').inspect.should == '{: alpha="hello" beta={beta: gamma=23 toaster=true}}'
+    parse('''home {
+               states = ["California", "Tennessee", "Idaho"]
+               regions = ["pacific", "southeast", "northwest"]
+             }
+          ''').inspect.should == '{: home={home: regions=["pacific", "southeast", "northwest"] states=["California", "Tennessee", "Idaho"]}}'
+  end
+
+  it "handles items after closing a block" do
+    parse('''alpha = 17
+             inner {
+               name = "foo"
+               further {
+                 age = 500
+               }
+               zipcode = 99999
+             }
+             beta = 19
+          ''').inspect.should == '{: alpha=17 beta=19 inner={inner: further={inner.further: age=500} name="foo" zipcode=99999}}'
+  end
 end
 
 #
 # "ConfigParser" should {
-#   "handle nested blocks" in {
-#     parse("alpha=\"hello\"\n<beta>\n    gamma=23\n</beta>").toString mustEqual
-#       "{: alpha=\"hello\" beta={beta: gamma=\"23\" } }"
-#     parse("alpha=\"hello\"\n<beta>\n    gamma=23\n    toaster on\n</beta>").toString mustEqual
-#       "{: alpha=\"hello\" beta={beta: gamma=\"23\" toaster=\"true\" } }"
-#   }
-#
-#   "handle nested blocks in braces" in {
-#     parse("alpha=\"hello\"\nbeta {\n    gamma=23\n}").toString mustEqual
-#       "{: alpha=\"hello\" beta={beta: gamma=\"23\" } }"
-#     parse("alpha=\"hello\"\nbeta {\n    gamma=23\n    toaster on\n}").toString mustEqual
-#       "{: alpha=\"hello\" beta={beta: gamma=\"23\" toaster=\"true\" } }"
-#   }
-#
 #   "import files" in {
 #     val data1 =
 #       "toplevel=\"skeletor\"\n" +
@@ -113,19 +117,5 @@ end
 #   }
 #   "catch unknown block modifiers" in {
 #     parse("<upp name=\"fred\">\n</upp>\n") must throwA(new ParseException("Unknown block modifier"))
-#   }
-#
-#   "handle an outer scope after a closed block" in {
-#     val data =
-#       "alpha = 17\n" +
-#       "<inner>\n" +
-#       "    name = \"foo\"\n" +
-#       "    <further>\n" +
-#       "        age = 500\n" +
-#       "    </further>\n" +
-#       "    zipcode = 99999\n" +
-#       "</inner>\n" +
-#       "beta = 19\n"
-#     parse(data).toString mustEqual "{: alpha=\"17\" beta=\"19\" inner={inner: further={inner.further: age=\"500\" } name=\"foo\" zipcode=\"99999\" } }"
 #   }
 # }

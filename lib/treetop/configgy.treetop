@@ -1,20 +1,16 @@
-grammar Configgy
+grammar Treetop_Configgy
   rule root
-    root_bits:root_bit* whitespace* {
+    d:declaration* whitespace* {
       def apply(attr)
-        root_bits.elements.each { |node| node.apply(attr) }
+        d.elements.each { |node| node.apply(attr) }
       end
     }
   end
 
-  rule root_bit
-    whitespace* assignment {
+  rule declaration
+    whitespace* d:(include_file / assignment / toggle / section) {
       def apply(attr)
-        assignment.apply(attr)
-      end
-    } / whitespace* toggle {
-      def apply(attr)
-        toggle.apply(attr)
+        d.apply(attr)
       end
     }
   end
@@ -54,7 +50,7 @@ grammar Configgy
       end
     }
   end
-  
+
   rule string
     "\"" raw:string_innards* "\"" {
       def to_value
@@ -100,7 +96,7 @@ grammar Configgy
   rule hex_digit
     [0-9a-fA-F]
   end
-  
+
   rule true_false
     "true" {
       def to_value
@@ -120,7 +116,7 @@ grammar Configgy
       end
     }
   end
-  
+
   rule string_list
     "[" whitespace* list:(item:(string / number) (whitespace* ",")? whitespace*)* "]" {
       def to_value
@@ -128,67 +124,36 @@ grammar Configgy
       end
     }
   end
-  
+
   rule identifier
     identifier_token ("\." identifier_token)*
   end
 
   rule identifier_token
-    ([a-zA-Z_] [-a-zA-Z_]*)
+    ([a-zA-Z] [-a-zA-Z_]*)
+  end
+
+  rule section
+    identifier_token whitespace* ("(" whitespace* (tag_attribute whitespace*)* ")")? whitespace* "{" root "}" {
+      def apply(attr)
+        new_name = identifier_token.text_value
+        nested_attr = Configgy::ConfigMap.new(attr.root, attr.name == "" ? new_name : attr.name + "." + new_name)
+        # FIXME attributes
+        attr[new_name] = nested_attr
+        root.apply(nested_attr)
+      end
+    }
+  end
+
+  rule tag_attribute
+    name:"inherit" "=" value:string
+  end
+
+  rule include_file
+    "include" whitespace* string {
+      def apply(attr)
+        load(string.text_value, attr)
+      end
+    }
   end
 end
-
-
-
-# 
-# val sections = new Stack[String]
-# var prefix = ""
-# val tagNameToken: Parser[String] = """[a-zA-Z][-\w]*""".r
-# 
-
-
-
-# def root = rep(includeFile | assignment | toggle | sectionOpen | sectionClose |
-#                sectionOpenBrace | sectionCloseBrace)
-# 
-# def includeFile = "include" ~> string ^^ {
-#   case filename: String =>
-#     new ConfigParser(attr.makeAttributes(sections.mkString(".")), importer) parse importer.importFile(filename)
-# }
-# 
-# 
-# 
-# def sectionOpen = "<" ~> tagNameToken ~ rep(tagAttribute) <~ ">" ^^ {
-#   case name ~ attrList => openBlock(name, attrList)
-# }
-# def tagAttribute = opt(whiteSpace) ~> (tagNameToken <~ "=") ~ string ^^ { case k ~ v => (k, v) }
-# def sectionClose = "</" ~> tagNameToken <~ ">" ^^ { name => closeBlock(Some(name)) }
-# 
-# def sectionOpenBrace = tagNameToken ~ opt("(" ~> rep(tagAttribute) <~ ")") <~ "{" ^^ {
-#   case name ~ attrListOption => openBlock(name, attrListOption.getOrElse(Nil))
-# }
-# def sectionCloseBrace = "}" ^^ { x => closeBlock(None) }
-# 
-# private def openBlock(name: String, attrList: List[(String, String)]) = {
-#   val parent = if (sections.size > 0) attr.makeAttributes(sections.mkString(".")) else attr
-#   sections += name
-#   prefix = sections.mkString("", ".", ".")
-#   val newBlock = attr.makeAttributes(sections.mkString("."))
-#   for ((k, v) <- attrList) k match {
-#     case "inherit" => newBlock.inheritFrom = Some(if (parent.getConfigMap(v).isDefined) parent.makeAttributes(v) else attr.makeAttributes(v))
-#     case _ => throw new ParseException("Unknown block modifier")
-#   }
-# }
-# 
-# private def closeBlock(name: Option[String]) = {
-#   if (sections.isEmpty) {
-#     failure("dangling close tag")
-#   } else {
-#     val last = sections.pop
-#     if (name.isDefined && last != name.get) {
-#       failure("got closing tag for " + name.get + ", expected " + last)
-#     } else {
-#       prefix = if (sections.isEmpty) "" else sections.mkString("", ".", ".")
-#     }
-#   }
-# }

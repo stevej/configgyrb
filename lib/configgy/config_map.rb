@@ -1,7 +1,7 @@
 module Configgy
   class ConfigMap
     attr_reader :name, :cells
-    attr_accessor :monitored, :inherit_from
+    attr_accessor :root, :monitored, :inherit_from
 
     def initialize(root, name)
       @root = root
