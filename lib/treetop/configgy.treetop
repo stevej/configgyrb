@@ -2,7 +2,7 @@ grammar Configgy
   rule assignment
     identifier op:("=" / "?=") value {
       def apply(attr)
-        key = attr.prefix + identifier.text_value
+        key = identifier.text_value
         if (op.text_value == "=") or !attr.has_key?(key)
           attr[key] = value.to_value
         end
@@ -10,17 +10,14 @@ grammar Configgy
     }
   end
 
-  # def assignment = identToken ~ assignToken ~ value ^^ {
-  #   case k ~ a ~ v => if (a match {
-  #     case "=" => true
-  #     case "?=" => ! attr.contains(prefix + k)
-  #   }) v match {
-  #     case x: Int => attr(prefix + k) = x
-  #     case x: String => attr(prefix + k) = x
-  #     case x: Array[String] => attr(prefix + k) = x
-  #     case x: Boolean => attr(prefix + k) = x
-  #   }
-  # }
+  rule toggle
+    identifier true_false {
+      def apply(attr)
+        key = identifier.text_value
+        attr[key] = true_false.to_value
+      end
+    }
+  end
 
   rule value
     number / string / true_false / string_list
@@ -126,13 +123,7 @@ end
 # 
 # val sections = new Stack[String]
 # var prefix = ""
-# 
-# 
-# // tokens
-# val identToken: Parser[String] = """([a-zA-Z_][-\w]*)(\.[a-zA-Z_][-\w]*)*""".r
-# val assignToken: Parser[String] = """=|\?=""".r
 # val tagNameToken: Parser[String] = """[a-zA-Z][-\w]*""".r
-# 
 # 
 # def root = rep(includeFile | assignment | toggle | sectionOpen | sectionClose |
 #                sectionOpenBrace | sectionCloseBrace)
@@ -143,7 +134,6 @@ end
 # }
 # 
 # 
-# def toggle = identToken ~ trueFalse ^^ { case k ~ v => attr(prefix + k) = v }
 # 
 # def sectionOpen = "<" ~> tagNameToken ~ rep(tagAttribute) <~ ">" ^^ {
 #   case name ~ attrList => openBlock(name, attrList)
@@ -179,6 +169,3 @@ end
 #     }
 #   }
 # }
-# 
-# 
-# 

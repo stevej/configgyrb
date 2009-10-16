@@ -72,6 +72,10 @@ module Configgy
       end
     end
 
+    def has_key?(key)
+      recurse(key) { |config_map, key| config_map.cells.has_key?(key) }
+    end
+
     def ==(other)
       other.instance_of?(self.class) and @cells == other.cells
     end

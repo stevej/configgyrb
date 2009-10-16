@@ -18,10 +18,6 @@ task :treetop do
   system("tt lib/treetop/configgy.treetop")
 end
 
-task :test do
-  system("ruby -Ilib ./test/unit/*.rb")
-end
-
 $LOAD_PATH << "lib"
 Spec::Rake::SpecTask.new(:spec) do |t|
   # why is color misspelled?
