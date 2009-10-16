@@ -42,19 +42,46 @@ describe "ConfigParser" do
   it "ignores comments" do
     parse("# doing stuff\n  weight = 48\n  # more comments\n").inspect.should == "{: weight=48}"
   end
+
+  it "parses booleans" do
+    parse("wine off\nwhiskey on\n").inspect.should == '{: whiskey=true wine=false}'
+    parse("wine = false\nwhiskey = on\n").inspect.should == '{: whiskey=true wine=false}'
+  end
+
+  it "handles string lists" do
+    b = parse('cats = ["Commie", "Buttons", "Sockington"]')
+    b[:cats].should == [ 'Commie', 'Buttons', 'Sockington' ]
+  end
+
+  it "handles number lists" do
+    b = parse('widths = [ 90, 100 ]')
+    b[:widths].should == [ 90, 100 ]
+  end
+
+  it "handles lists without comma separators" do
+    b = parse('cats = ["Commie" "Buttons" "Sockington"]')
+    b[:cats].should == [ 'Commie', 'Buttons', 'Sockington' ]
+  end
+
+  it "handles lists with a trailing comma" do
+    b = parse('cats = ["Commie", "Buttons", "Sockington",]')
+    b[:cats].should == [ 'Commie', 'Buttons', 'Sockington' ]
+  end
+
+  #     "normal" in {
+  #       val data =
+  #         "<home>\n" +
+  #         "    states = [\"California\", \"Tennessee\", \"Idaho\"]\n" +
+  #         "    regions = [\"pacific\", \"southeast\", \"northwest\"]\n" +
+  #         "</home>\n"
+  #       val a = parse(data)
+  #       a.toString mustEqual "{: home={home: regions=[pacific,southeast,northwest] states=[California,Tennessee,Idaho] } }"
+  #       a.getList("home.states").toList.mkString(",") mustEqual "California,Tennessee,Idaho"
+  #     }
 end
 
 #
 # "ConfigParser" should {
-
-#   "ignore comments" in {
-#   }
-#
-#   "parse booleans" in {
-#     parse("wine off\nwhiskey on\n").toString mustEqual "{: whiskey=\"true\" wine=\"false\" }"
-#     parse("wine = false\nwhiskey = on\n").toString mustEqual "{: whiskey=\"true\" wine=\"false\" }"
-#   }
-#
 #   "handle nested blocks" in {
 #     parse("alpha=\"hello\"\n<beta>\n    gamma=23\n</beta>").toString mustEqual
 #       "{: alpha=\"hello\" beta={beta: gamma=\"23\" } }"
@@ -67,56 +94,6 @@ end
 #       "{: alpha=\"hello\" beta={beta: gamma=\"23\" } }"
 #     parse("alpha=\"hello\"\nbeta {\n    gamma=23\n    toaster on\n}").toString mustEqual
 #       "{: alpha=\"hello\" beta={beta: gamma=\"23\" toaster=\"true\" } }"
-#   }
-#
-#   "handle string lists" in {
-#     "normal" in {
-#       val data2 = "cats = [\"Commie\", \"Buttons\", \"Sockington\"]"
-#       val b = parse(data2)
-#       b.getList("cats").toList mustEqual List("Commie", "Buttons", "Sockington")
-#       b.getList("cats")(0) mustEqual "Commie"
-#
-#       val data =
-#         "<home>\n" +
-#         "    states = [\"California\", \"Tennessee\", \"Idaho\"]\n" +
-#         "    regions = [\"pacific\", \"southeast\", \"northwest\"]\n" +
-#         "</home>\n"
-#       val a = parse(data)
-#       a.toString mustEqual "{: home={home: regions=[pacific,southeast,northwest] states=[California,Tennessee,Idaho] } }"
-#       a.getList("home.states").toList.mkString(",") mustEqual "California,Tennessee,Idaho"
-#       a.getList("home.states")(0) mustEqual "California"
-#       a.getList("home.regions")(1) mustEqual "southeast"
-#     }
-#
-#     "without comma separators" in {
-#       val data2 = "cats = [\"Commie\" \"Buttons\" \"Sockington\"]"
-#       val b = parse(data2)
-#       b.getList("cats").toList mustEqual List("Commie", "Buttons", "Sockington")
-#       b.getList("cats")(0) mustEqual "Commie"
-#     }
-#
-#     "with a trailing comma" in {
-#       val data2 = "cats = [\"Commie\", \"Buttons\", \"Sockington\",]"
-#       val b = parse(data2)
-#       b.getList("cats").toList mustEqual List("Commie", "Buttons", "Sockington")
-#       b.getList("cats")(0) mustEqual "Commie"
-#     }
-#   }
-#
-#   "handle camelCase lists" in {
-#     val data =
-#       "<daemon>\n" +
-#       "    useLess = [\"one\",\"two\"]\n" +
-#       "</daemon>\n"
-#     val a = parse(data)
-#     a.getList("daemon.useLess").toList mustEqual List("one", "two")
-#   }
-#
-#   "handle lists with numbers" in {
-#     val data = "ports = [ 9940, 9941, 9942 ]\n"
-#     val a = parse(data)
-#     a.toString mustEqual "{: ports=[9940,9941,9942] }"
-#     a.getList("ports").toList mustEqual List("9940", "9941", "9942")
 #   }
 #
 #   "import files" in {
@@ -134,16 +111,6 @@ end
 #       "include \"test4\"\n"
 #     parse(data2).toString mustEqual "{: cow=\"moo\" inner={inner: cat=\"meow\" dog=\"bark\" } toplevel=\"hat\" }"
 #   }
-#
-#   "refuse to overload key types" in {
-#     val data =
-#       "cat = 23\n" +
-#       "<cat>\n" +
-#       "    dog = 1\n" +
-#       "</cat>\n"
-#     parse(data) must throwA(new ConfigException("Illegal key cat"))
-#   }
-#
 #   "catch unknown block modifiers" in {
 #     parse("<upp name=\"fred\">\n</upp>\n") must throwA(new ParseException("Unknown block modifier"))
 #   }

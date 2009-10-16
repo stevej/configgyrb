@@ -12,6 +12,10 @@ grammar Configgy
       def apply(attr)
         assignment.apply(attr)
       end
+    } / whitespace* toggle {
+      def apply(attr)
+        toggle.apply(attr)
+      end
     }
   end
 
@@ -27,7 +31,7 @@ grammar Configgy
   end
 
   rule toggle
-    identifier true_false {
+    identifier whitespace* true_false {
       def apply(attr)
         key = identifier.text_value
         attr[key] = true_false.to_value
@@ -118,7 +122,7 @@ grammar Configgy
   end
   
   rule string_list
-    "[" list:(item:(string / number) ","?)* "]" {
+    "[" whitespace* list:(item:(string / number) (whitespace* ",")? whitespace*)* "]" {
       def to_value
         list.elements.map { |e| e.item.to_value }
       end
