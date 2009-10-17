@@ -96,26 +96,50 @@ describe "ConfigParser" do
              beta = 19
           ''').inspect.should == '{: alpha=17 beta=19 inner={inner: further={inner.further: age=500} name="foo" zipcode=99999}}'
   end
-end
 
-#
-# "ConfigParser" should {
-#   "import files" in {
-#     val data1 =
-#       "toplevel=\"skeletor\"\n" +
-#       "<inner>\n" +
-#       "    include \"test1\"\n" +
-#       "    home = \"greyskull\"\n" +
-#       "</inner>\n"
-#     parse(data1).toString mustEqual "{: inner={inner: home=\"greyskull\" staff=\"weird skull\" } toplevel=\"skeletor\" }"
-#
-#     val data2 =
-#       "toplevel=\"hat\"\n" +
-#       "include \"test2\"\n" +
-#       "include \"test4\"\n"
-#     parse(data2).toString mustEqual "{: cow=\"moo\" inner={inner: cat=\"meow\" dog=\"bark\" } toplevel=\"hat\" }"
-#   }
-#   "catch unknown block modifiers" in {
-#     parse("<upp name=\"fred\">\n</upp>\n") must throwA(new ParseException("Unknown block modifier"))
-#   }
-# }
+  it "imports files" do
+    def @parser.load_file(filename, map=nil)
+      if filename == "test1"
+        read("staff=\"weird skull\"\n", map)
+      end
+    end
+
+    parse('''toplevel = "skeletor"
+             inner {
+               include "test1"
+               home = "greyskull"
+             }
+          ''').inspect.should == '{: inner={inner: home="greyskull" staff="weird skull"} toplevel="skeletor"}'
+  end
+
+  it "imports multiple, nested files" do
+    def @parser.load_file(filename, map=nil)
+      if filename == "test2"
+        data = '''
+          inner {
+            cat="meow"
+            include "test3"
+            dog ?= "blah"
+          }
+        '''
+      end
+      if filename == "test3"
+        data = '''
+          dog="bark"
+          cat ?= "blah"
+        '''
+      end
+      if filename == "test4"
+        data = '''
+          cow = "moo"
+        '''
+      end
+      read(data, map)
+    end
+
+    parse('''toplevel = "hat"
+             include "test2"
+             include "test4"
+          ''').inspect.should == '{: cow="moo" inner={inner: cat="meow" dog="bark"} toplevel="hat"}'
+  end
+end

@@ -1,23 +1,23 @@
 grammar Treetop_Configgy
   rule root
     d:declaration* whitespace* {
-      def apply(attr)
-        d.elements.each { |node| node.apply(attr) }
+      def apply(attr, parser)
+        d.elements.each { |node| node.apply(attr, parser) }
       end
     }
   end
 
   rule declaration
     whitespace* d:(include_file / assignment / toggle / section) {
-      def apply(attr)
-        d.apply(attr)
+      def apply(attr, parser)
+        d.apply(attr, parser)
       end
     }
   end
 
   rule assignment
     identifier whitespace* op:("=" / "?=") whitespace* value {
-      def apply(attr)
+      def apply(attr, parser)
         key = identifier.text_value
         if (op.text_value == "=") or !attr.has_key?(key)
           attr[key] = value.to_value
@@ -28,7 +28,7 @@ grammar Treetop_Configgy
 
   rule toggle
     identifier whitespace* true_false {
-      def apply(attr)
+      def apply(attr, parser)
         key = identifier.text_value
         attr[key] = true_false.to_value
       end
@@ -135,12 +135,12 @@ grammar Treetop_Configgy
 
   rule section
     identifier_token whitespace* ("(" whitespace* (tag_attribute whitespace*)* ")")? whitespace* "{" root "}" {
-      def apply(attr)
+      def apply(attr, parser)
         new_name = identifier_token.text_value
         nested_attr = Configgy::ConfigMap.new(attr.root, attr.name == "" ? new_name : attr.name + "." + new_name)
         # FIXME attributes
         attr[new_name] = nested_attr
-        root.apply(nested_attr)
+        root.apply(nested_attr, parser)
       end
     }
   end
@@ -151,8 +151,8 @@ grammar Treetop_Configgy
 
   rule include_file
     "include" whitespace* string {
-      def apply(attr)
-        load(string.text_value, attr)
+      def apply(attr, parser)
+        parser.load_file(string.to_value, attr)
       end
     }
   end
