@@ -1,26 +1,26 @@
 grammar Treetop_Configgy
   rule root
     d:declaration* whitespace* {
-      def apply(attr, parser)
-        d.elements.each { |node| node.apply(attr, parser) }
+      def apply(config_map, parser)
+        d.elements.each { |node| node.apply(config_map, parser) }
       end
     }
   end
 
   rule declaration
     whitespace* d:(include_file / assignment / toggle / section) {
-      def apply(attr, parser)
-        d.apply(attr, parser)
+      def apply(config_map, parser)
+        d.apply(config_map, parser)
       end
     }
   end
 
   rule assignment
     identifier whitespace* op:("=" / "?=") whitespace* value {
-      def apply(attr, parser)
+      def apply(config_map, parser)
         key = identifier.text_value
-        if (op.text_value == "=") or !attr.has_key?(key)
-          attr[key] = value.to_value
+        if (op.text_value == "=") or !config_map.has_key?(key)
+          config_map[key] = value.to_value(config_map)
         end
       end
     }
@@ -28,9 +28,9 @@ grammar Treetop_Configgy
 
   rule toggle
     identifier whitespace* true_false {
-      def apply(attr, parser)
+      def apply(config_map, parser)
         key = identifier.text_value
-        attr[key] = true_false.to_value
+        config_map[key] = true_false.to_value
       end
     }
   end
@@ -45,7 +45,7 @@ grammar Treetop_Configgy
 
   rule number
     "-"? [0-9]+ decimal:("." [0-9]+)? {
-      def to_value
+      def to_value(config_map=nil)
         decimal.text_value.empty? ? text_value.to_i : text_value.to_f
       end
     }
@@ -53,8 +53,9 @@ grammar Treetop_Configgy
 
   rule string
     "\"" raw:string_innards* "\"" {
-      def to_value
-        raw.elements.inject("") { |total, segment| total + segment.unquoted }
+      def to_value(config_map=nil)
+        rv = raw.elements.inject("") { |total, segment| total + segment.unquoted }
+        config_map ? config_map.interpolate(rv) : rv
       end
     }
   end
@@ -99,19 +100,19 @@ grammar Treetop_Configgy
 
   rule true_false
     "true" {
-      def to_value
+      def to_value(config_map=nil)
         true
       end
     } / "on" {
-      def to_value
+      def to_value(config_map=nil)
         true
       end
     } / "false" {
-      def to_value
+      def to_value(config_map=nil)
         false
       end
     } / "off" {
-      def to_value
+      def to_value(config_map=nil)
         false
       end
     }
@@ -119,8 +120,8 @@ grammar Treetop_Configgy
 
   rule string_list
     "[" whitespace* list:(item:(string / number) (whitespace* ",")? whitespace*)* "]" {
-      def to_value
-        list.elements.map { |e| e.item.to_value }
+      def to_value(config_map=nil)
+        list.elements.map { |e| e.item.to_value(config_map) }
       end
     }
   end
@@ -134,13 +135,30 @@ grammar Treetop_Configgy
   end
 
   rule section
-    identifier_token whitespace* ("(" whitespace* (tag_attribute whitespace*)* ")")? whitespace* "{" root "}" {
-      def apply(attr, parser)
+    identifier_token whitespace* attribute_list:("(" whitespace* attributes:(tag_attribute whitespace*)* ")")? whitespace* "{" root "}" {
+      def apply(config_map, parser)
         new_name = identifier_token.text_value
-        nested_attr = Configgy::ConfigMap.new(attr.root, attr.name == "" ? new_name : attr.name + "." + new_name)
-        # FIXME attributes
-        attr[new_name] = nested_attr
-        root.apply(nested_attr, parser)
+        nested_config_map = Configgy::ConfigMap.new(config_map.root, config_map.name == "" ? new_name : config_map.name + "." + new_name)
+        if attribute_list.elements
+          attribute_list.attributes.elements.map { |e| e.tag_attribute }.each do |attr|
+            case attr.name.text_value
+            when "inherit"
+              v = attr.value.to_value
+              if config_map[v].instance_of?(Configgy::ConfigMap)
+                nested_config_map.inherit_from = config_map[v]
+              elsif config_map.root
+                config_map.root[v] = Configgy::ConfigMap.new(config_map.root, v) unless config_map.root.has_key?(v)
+                if config_map.root[v].instance_of?(Configgy::ConfigMap)
+                  nested_config_map.inherit_from = config_map.root[v]
+                else
+                  raise ConfigException("can only inherit from blocks")
+                end
+              end
+            end
+          end
+        end
+        config_map[new_name] = nested_config_map
+        root.apply(nested_config_map, parser)
       end
     }
   end
@@ -151,8 +169,8 @@ grammar Treetop_Configgy
 
   rule include_file
     "include" whitespace* string {
-      def apply(attr, parser)
-        parser.load_file(string.to_value, attr)
+      def apply(config_map, parser)
+        parser.load_file(string.to_value, config_map)
       end
     }
   end
