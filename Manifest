@@ -1,5 +1,10 @@
 CHANGELOG
-lib/configgy.rb
-Rakefile
-test/unit/configgy_test.rb
 Manifest
+Rakefile
+lib/configgy.rb
+lib/configgy/config_map.rb
+lib/configgy/config_parser.rb
+lib/treetop/configgy.rb
+lib/treetop/configgy.treetop
+spec/config_map_spec.rb
+spec/config_parser_spec.rb
