@@ -257,7 +257,7 @@ describe "ConfigParser" do
                  }
               ''')
     p.inspect.should == ('{: daemon={daemon: base={daemon.base: ulimit_fd=32768} useless=3} upp={upp (inherit=daemon.base): ' +
-                         'alpha={upp.alpha (inherit=upp): name="alpha"} beta={upp.beta (inherit=daemon): name="beta"} some_int=1 uid=16}}'
+                         'alpha={upp.alpha (inherit=upp): name="alpha"} beta={upp.beta (inherit=daemon): name="beta"} some_int=1 uid=16}}')
     p["daemon.useless"].should == 3
     p["upp.uid"].should == 16
     p["upp.ulimit_fd"].should == 32768

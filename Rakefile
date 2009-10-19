@@ -19,7 +19,7 @@ task :treetop do
 end
 
 $LOAD_PATH << "lib"
-Spec::Rake::SpecTask.new(:spec) do |t|
+Spec::Rake::SpecTask.new(:specs) do |t|
   # why is color misspelled?
   t.spec_opts = [ '--colour', '--format progress', '--loadby mtime', '--reverse' ]
   t.spec_files = FileList['spec/*_spec.rb']
