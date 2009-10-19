@@ -73,7 +73,7 @@ module Configgy
     end
 
     def has_key?(key)
-      recurse(key) { |config_map, key| config_map.cells.has_key?(key) }
+      !lookup_cell(key.to_s).nil?
     end
 
     def ==(other)
@@ -116,6 +116,16 @@ module Configgy
           "#{k} = #{v.inspect}"
         end
       end.flatten
+    end
+
+    def interpolate(s)
+      s.gsub(/(?!\\)\$\((\w[\w\d\._-]*)\)|\\\$/) do |m|
+        if m == "\\$"
+          "$"
+        else
+          ([ self, @root, ENV ].find { |config_map| config_map[$1] } || {})[$1]
+        end
+      end
     end
 
     def inspect
