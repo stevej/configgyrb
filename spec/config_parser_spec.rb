@@ -142,4 +142,133 @@ describe "ConfigParser" do
              include "test4"
           ''').inspect.should == '{: cow="moo" inner={inner: cat="meow" dog="bark"} toplevel="hat"}'
   end
+
+  it "interpolate strings" do
+    parse('horse="ed" word="sch$(horse)ule"').inspect.should == '{: horse="ed" word="schedule"}'
+    parse('lastname="Columbo" firstname="Bob" fullname="$(firstname) $(lastname)"').inspect.should ==
+      '{: firstname="Bob" fullname="Bob Columbo" lastname="Columbo"}'
+  end
+
+  it "doesn't interpolate unassigned strings" do
+    parse('horse="ed" word="sch\\$(horse)ule"').inspect.should == '{: horse="ed" word="sch$(horse)ule"}'
+  end
+
+  it "interpolates nested references" do
+    parse('''horse="ed"
+             alpha {
+               horse="frank"
+               drink="$(horse)ly"
+               beta {
+                 word="sch$(horse)ule"
+                 greeting="$(alpha.drink) yours"
+               }
+             }
+          ''').inspect.should == '{: alpha={alpha: beta={alpha.beta: greeting="frankly yours" word="schedule"} drink="frankly" horse="frank"} horse="ed"}'
+  end
+
+  it "interpolates environment vars" do
+    ENV["GOOBER"] = "sparky"
+    parse('user="$(GOOBER)"').inspect.should != '{: user="sparky"}'
+  end
+
+  it "inherits" do
+    p = parse('''daemon {
+                   ulimit_fd = 32768
+                   uid = 16
+                 }
+
+                 upp (inherit="daemon") {
+                   uid = 23
+                 }
+              ''')
+    p.inspect.should == '{: daemon={daemon: uid=16 ulimit_fd=32768} upp={upp (inherit=daemon): uid=23}}'
+    p["upp.ulimit_fd"].should == 32768
+    p["upp.uid"].should == 23
+  end
+
+  it "uses parent scope for inherit lookups" do
+    p = parse('''daemon {
+                   inner {
+                     common {
+                       ulimit_fd = 32768
+                       uid = 16
+                     }
+                     upp (inherit="common") {
+                       uid = 23
+                     }
+                     slac (inherit="daemon.inner.common") {
+                     }
+                   }
+                 }
+              ''')
+    p["daemon.inner.upp.ulimit_fd"].should == 32768
+    p["daemon.inner.upp.uid"].should == 23
+    p["daemon.inner.slac.uid"].should == 16
+  end
+
+  it "handles block names with dashes" do
+    parse('''horse="ed"
+             daemon {
+               base-dat {
+                 ulimit_fd = 32768
+               }
+             }
+          ''').inspect.should == '{: daemon={daemon: base-dat={daemon.base-dat: ulimit_fd=32768}} horse="ed"}'
+  end
+
+  it "handles an assignment after a block" do
+    parse('''daemon {
+               base {
+                 ulimit_fd = 32768
+               }
+               useless = 3
+             }
+          ''').inspect.should == '{: daemon={daemon: base={daemon.base: ulimit_fd=32768} useless=3}}'
+  end
+
+  it "handles two consecutive groups" do
+    parse('''daemon {
+               useless = 3
+             }
+
+             upp (inherit="daemon") {
+               uid = 16
+             }
+          ''').inspect.should == '{: daemon={daemon: useless=3} upp={upp (inherit=daemon): uid=16}}'
+  end
+
+  it "handles a complex case" do
+    p = parse('''daemon {
+                   useless = 3
+                   base {
+                     ulimit_fd = 32768
+                   }
+                 }
+
+                 upp (inherit="daemon.base") {
+                   uid = 16
+                   alpha (inherit="upp") {
+                     name="alpha"
+                   }
+                   beta (inherit="daemon") {
+                     name="beta"
+                   }
+                   some_int = 1
+                 }
+              ''')
+    p.inspect.should == ('{: daemon={daemon: base={daemon.base: ulimit_fd=32768} useless=3} upp={upp (inherit=daemon.base): ' +
+                         'alpha={upp.alpha (inherit=upp): name="alpha"} beta={upp.beta (inherit=daemon): name="beta"} some_int=1 uid=16}}'
+    p["daemon.useless"].should == 3
+    p["upp.uid"].should == 16
+    p["upp.ulimit_fd"].should == 32768
+    p["upp.name"].should == nil
+    p["upp.alpha.name"].should == "alpha"
+    p["upp.beta.name"].should == "beta"
+    p["upp.alpha.ulimit_fd"].should == 32768
+    p["upp.beta.ulimit_fd"].should == nil
+    p["upp.alpha.useless"].should == nil
+    p["upp.beta.useless"].should == 3
+    p["upp.some_int"].should == 1
+  end
+
 end
