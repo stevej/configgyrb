@@ -121,6 +121,16 @@ describe "ConfigMap" do
     t.inspect.should == '{root: age=8 disposition="hungry" name="Communist"}'
   end
 
+  it "merges a map" do
+    @map[:name] = "Communist"
+    @map[:age] = 8
+    new_map = @map.merge(:age => 20, :weight => 10)
+    @map[:age].should == 8
+    new_map[:age].should == 20
+    new_map[:name].should == "Communist"
+    new_map[:weight].should == 10
+  end
+
   it "creates a config string" do
     @map[:name] = "Sparky"
     @map[:age] = 10

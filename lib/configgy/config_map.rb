@@ -103,6 +103,12 @@ module Configgy
       map
     end
 
+    def merge(map)
+      rv = dup
+      map.each { |k, v| rv[k] = v }
+      rv
+    end
+
     def to_config_string
       to_config_list.join("\n") + "\n"
     end
