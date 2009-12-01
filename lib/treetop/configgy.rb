@@ -913,6 +913,56 @@ module Treetop_Configgy
     r0
   end
 
+  module Digit0
+  end
+
+  def _nt_digit
+    start_index = index
+    if node_cache[:digit].has_key?(index)
+      cached = node_cache[:digit][index]
+      @index = cached.interval.end if cached
+      return cached
+    end
+
+    i0, s0 = index, []
+    if has_terminal?('\G[0-9]', true, index)
+      r1 = true
+      @index += 1
+    else
+      r1 = nil
+    end
+    s0 << r1
+    if r1
+      s2, i2 = [], index
+      loop do
+        if has_terminal?('\G[0-9]', true, index)
+          r3 = true
+          @index += 1
+        else
+          r3 = nil
+        end
+        if r3
+          s2 << r3
+        else
+          break
+        end
+      end
+      r2 = instantiate_node(SyntaxNode,input, i2...index, s2)
+      s0 << r2
+    end
+    if s0.last
+      r0 = instantiate_node(SyntaxNode,input, i0...index, s0)
+      r0.extend(Digit0)
+    else
+      @index = i0
+      r0 = nil
+    end
+
+    node_cache[:digit][start_index] = r0
+
+    r0
+  end
+
   module TrueFalse0
     def to_value(config_map=nil)
       true
@@ -1232,6 +1282,46 @@ module Treetop_Configgy
     r0
   end
 
+  def _nt_ALPHA
+    start_index = index
+    if node_cache[:ALPHA].has_key?(index)
+      cached = node_cache[:ALPHA][index]
+      @index = cached.interval.end if cached
+      return cached
+    end
+
+    if has_terminal?('\G[A-Za-z]', true, index)
+      r0 = instantiate_node(SyntaxNode,input, index...(index + 1))
+      @index += 1
+    else
+      r0 = nil
+    end
+
+    node_cache[:ALPHA][start_index] = r0
+
+    r0
+  end
+
+  def _nt_DIGIT
+    start_index = index
+    if node_cache[:DIGIT].has_key?(index)
+      cached = node_cache[:DIGIT][index]
+      @index = cached.interval.end if cached
+      return cached
+    end
+
+    if has_terminal?('\G[0-9]', true, index)
+      r0 = instantiate_node(SyntaxNode,input, index...(index + 1))
+      @index += 1
+    else
+      r0 = nil
+    end
+
+    node_cache[:DIGIT][start_index] = r0
+
+    r0
+  end
+
   module IdentifierToken0
   end
 
@@ -1244,7 +1334,7 @@ module Treetop_Configgy
     end
 
     i0, s0 = index, []
-    if has_terminal?('\G[a-zA-Z]', true, index)
+    if has_terminal?('\G[\\da-zA-Z]', true, index)
       r1 = true
       @index += 1
     else
@@ -1254,7 +1344,7 @@ module Treetop_Configgy
     if r1
       s2, i2 = [], index
       loop do
-        if has_terminal?('\G[-a-zA-Z_]', true, index)
+        if has_terminal?('\G[-\\da-zA-Z_]', true, index)
           r3 = true
           @index += 1
         else

@@ -131,7 +131,7 @@ grammar Treetop_Configgy
   end
 
   rule identifier_token
-    ([a-zA-Z] [-a-zA-Z_]*)
+    ([\da-zA-Z] [-\da-zA-Z_]*)
   end
 
   rule section

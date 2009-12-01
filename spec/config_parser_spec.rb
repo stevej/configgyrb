@@ -55,6 +55,15 @@ describe "ConfigParser" do
     b[:widths].should == [ 90, 100 ]
   end
 
+  it "handles whole numbers as identifiers" do
+    parse("1 = 2").inspect.should == "{: 1=2}"
+    parse("1 = 2\n 3 = 4").inspect.should == "{: 1=2 3=4}"
+    parse("20 = 1").inspect.should == "{: 20=1}"
+    parse("2 = \"skeletor\"").inspect.should == "{: 2=\"skeletor\"}"
+    parse("4 = \"hostname:1234\"").inspect.should == "{: 4=\"hostname:1234\"}"
+    parse("4 = [\"a\", \"b\"]").inspect.should == "{: 4=[\"a\", \"b\"]}"
+  end
+
   it "handles lists without comma separators" do
     b = parse('cats = ["Commie" "Buttons" "Sockington"]')
     b[:cats].should == [ 'Commie', 'Buttons', 'Sockington' ]
